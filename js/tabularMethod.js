@@ -35,40 +35,55 @@ function getMinimalCoverage(minTerms){
     return arrayIsSubsetOfArray(remainingMinTerms, getCoverageOf(combination));
   });
 
-  let lowestCoverCost = minTerm*primeImplicants.length;
-  let minimalExtraCover;
+  let cheapestExtraCover = getCheapestMintermCoverage(potentialExtraCovers, bitLength);
 
-  for(potentialExtraCover of potentialExtraCovers){
+  return essensialPrimeImplicants.concat(cheapestExtraCover);
 
-    let coverCost = getMinTermCoverCost(potentialExtraCover);
+}
+
+/**
+ * Returns the cheapest of the given minterm covers, determined by
+ * {@link getMinTermCoverCost}.
+ * @param  {array}  covers     [covers to find cheapest of]
+ * @param  {number} bitLength  [required bit length of minterms]
+ * @return {array}             [cheapest cover]
+ */
+function getCheapestMintermCoverage(covers, bitLength){
+
+  let lowestCoverCost = bitLength*(2**bitLength);
+  let cheapestCover;
+
+  for(cover of covers){
+
+    let coverCost = getMinTermCoverCost(cover, bitLength);
 
     if(coverCost < lowestCoverCost){
 
       lowestCoverCost = coverCost;
 
-      minimalExtraCover = potentialExtraCover;
+      cheapestCover = cover;
 
     }
 
   }
 
-  return essensialPrimeImplicants.concat(minimalExtraCover);
+  return cheapestCover;
 
 }
 
 /**
- * Returns the number of minterms required for the given cover
- * This is simply the sum of the minterm counts of the cover's implicants.
- * @param  {array} minTermCover [an array of implicants]
- * @return {number}             [total minterm cost]
+ * Returns the number of literals required for the given cover.
+ * @param  {array}  minTermCover [an array of implicants]
+ * @param  {number} bitLength    [required bit length of minterms]
+ * @return {number}              [total minterm cost]
  */
-function getMinTermCoverCost(minTermCover){
+function getMinTermCoverCost(minTermCover, bitLength){
 
   let cost = 0;
 
   for(implicant of minTermCover){
 
-    cost += implicant.length;
+    cost += (bitLength-implicant.length+1);
 
   }
 
@@ -184,19 +199,19 @@ function getPrimeImplicants(minTerms, bitLength){
 
 /**
  * Recursive function that determines the next-level implicants
- * @param  {array}  implicants           [array of implicants]
- * @param  {array}  nonCoveredImplicants [array of implicants not covered by higher-level implicant]
- * @param  {number} bitLength            [required bit length of minterms]
- * @return {array}                       [array of next-level implicants]
+ * @param  {array}  implicants              [array of implicants]
+ * @param  {array}  allImplicants           [array of all generated implicants]
+ * @param  {number} bitLength               [required bit length of minterms]
+ * @return {array}                          [array of next-level implicants]
  */
-function getNextLevelImplicants(implicants, nonCoveredImplicants, bitLength){
+function getNextLevelImplicants(implicants, allImplicants, bitLength){
 
   let nextLevelImplicants = [];
 
   let implicantOneCountGroups = getOneCountImplicantGroups(implicants, bitLength);
 
   // Highest level implicants will never have any higher-level neighbours
-  nonCoveredImplicants = nonCoveredImplicants.concat(implicantOneCountGroups[implicantOneCountGroups.length-1]);
+  //allImplicants = allImplicants.concat(implicantOneCountGroups[implicantOneCountGroups.length-1]);
 
   for(let i = 0; i<implicantOneCountGroups.length - 1;i++){
 
@@ -209,20 +224,6 @@ function getNextLevelImplicants(implicants, nonCoveredImplicants, bitLength){
       let neighbourImplicants = getImplicantNeighbours(implicant, nextImplicantGroup, bitLength);
 
       if(neighbourImplicants.length == 0){
-
-        let alreadyCovered = false;
-
-        for(nextLevelImplicant of nextLevelImplicants){
-          if(arrayIsSubsetOfArray(implicant, nextLevelImplicant)){
-            alreadyCovered = true;
-            break;
-          }
-        }
-
-        if(!alreadyCovered){
-          nonCoveredImplicants.push(implicant);
-        }
-
         continue;
       }
 
@@ -242,10 +243,42 @@ function getNextLevelImplicants(implicants, nonCoveredImplicants, bitLength){
   }
 
   if(nextLevelImplicants.length == 0){
-    return nonCoveredImplicants;
+    // Reduce implicants to implicants not covered by higher level implicants
+    return getNonRedundantImplicantsOf(allImplicants);
   }
 
-  return getNextLevelImplicants(nextLevelImplicants, nonCoveredImplicants, bitLength);
+  for(nextLevelImplicant of nextLevelImplicants){
+    if(!arrayContainsArray(allImplicants, nextLevelImplicant)){
+      allImplicants.push(nextLevelImplicant);
+    }
+  }
+
+  return getNextLevelImplicants(nextLevelImplicants, allImplicants, bitLength);
+
+}
+
+
+function getNonRedundantImplicantsOf(implicants){
+
+  let nonRedundant = [];
+
+  for(implicant of implicants){
+
+    let covered = false;
+
+    for(let i = 0;i<implicants.length;i++){
+      if(!arraysEqual(implicant, implicants[i]) && arrayIsSubsetOfArray(implicant, implicants[i])){
+        covered = true;
+      }
+    }
+
+    if(!covered){
+      nonRedundant.push(implicant);
+    }
+
+  }
+
+  return nonRedundant;
 
 }
 
@@ -272,6 +305,11 @@ function getOneCountImplicantGroups(implicants, bitLength){
     implicantGroups[oneCount].push(implicant);
 
   }
+
+  // Remove empty one-groups
+  implicantGroups = implicantGroups.filter(function(a){
+    return a.length > 0;
+  })
 
   return implicantGroups;
 
@@ -366,7 +404,7 @@ function getImplicantString(implicant, bitLength){
  * Returns the combination of the given implicant strings.
  * This is performed by recursively combining pairs of strings until
  * everything is combined into one string.
- * @param  {array}  implicantStrings [string representations of implcants]
+ * @param  {array}  implicantStrings [string representations of implicants]
  * @param  {number} bitLength        [required bit length of minterms]
  * @return {string}                  [string representation of combination]
  */
