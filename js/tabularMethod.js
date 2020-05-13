@@ -193,7 +193,7 @@ function getPrimeImplicants(minTerms, bitLength){
     trivialMinTermImplicants.push([minTerm]);
   }
 
-  return getNextLevelImplicants(trivialMinTermImplicants, [], bitLength);
+  return getNextLevelImplicants(trivialMinTermImplicants, trivialMinTermImplicants, bitLength);
 
 }
 
