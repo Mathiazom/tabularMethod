@@ -211,7 +211,12 @@ function getNextLevelImplicants(implicants, allImplicants, bitLength){
   let implicantOneCountGroups = getOneCountImplicantGroups(implicants, bitLength);
 
   // Highest level implicants will never have any higher-level neighbours
-  //allImplicants = allImplicants.concat(implicantOneCountGroups[implicantOneCountGroups.length-1]);
+  let highestImplicants = implicantOneCountGroups[implicantOneCountGroups.length-1];
+  for(implicant of highestImplicants){
+    if(!arrayContainsArray(allImplicants,implicant)){
+      allImplicants.push(implicant);
+    }
+  }
 
   for(let i = 0; i<implicantOneCountGroups.length - 1;i++){
 
