@@ -5,17 +5,19 @@
  * @param  {array} minTerms [minterms of boolean function]
  * @return {array}          [minimal coverage (array of implicants)]
  */
-function getMinimalCoverage(minTerms){
+function getMinimalCoverage(minTerms, dontCareTerms){
 
   if(minTerms.length == 0){
     return false;
   }
 
-  let bitLength = getMinimumBitLength(minTerms);
+  let minAndDontCareTerms = minTerms.concat(dontCareTerms);
 
-  let primeImplicants = getPrimeImplicants(minTerms, bitLength);
+  let bitLength = getMinimumBitLength(minAndDontCareTerms);
 
-  let essensialPrimeImplicants = getEssensialPrimeImplicants(primeImplicants);
+  let primeImplicants = getPrimeImplicants(minAndDontCareTerms, bitLength);
+
+  let essensialPrimeImplicants = getEssensialPrimeImplicants(primeImplicants, dontCareTerms);
 
   let essensialCoverage = getCoverageOf(essensialPrimeImplicants);
 
@@ -140,7 +142,7 @@ function getCoverageOf(primeImplicants){
  * @param  {array} primeImplicants [array of prime implicants]
  * @return {array}                 [array of essensial prime implicants]
  */
-function getEssensialPrimeImplicants(primeImplicants){
+function getEssensialPrimeImplicants(primeImplicants, dontCareTerms){
 
   let minTermCoverage = {};
 
@@ -149,6 +151,10 @@ function getEssensialPrimeImplicants(primeImplicants){
     let primeImplicant = primeImplicants[i];
 
     for(minTerm of primeImplicant){
+
+      if(dontCareTerms.includes(minTerm)){
+        continue;
+      }
 
       if(!(minTerm in minTermCoverage)){
         minTermCoverage[minTerm] = [];

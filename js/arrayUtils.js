@@ -69,7 +69,7 @@ function getAllIndexCombinations(totalIndices, length){
         continue;
       }
 
-      let potentialCombination = preCombination.concat(i).sort();
+      let potentialCombination = preCombination.concat(i).sort((a,b) => a-b);
 
       if(!arrayContainsArray(combinations, potentialCombination)){
         combinations.push(potentialCombination);
@@ -124,17 +124,33 @@ function arrayIsSubsetOfArray(a,b){
 
 }
 
+/**
+ * Determines if two arrays are equal (supports multi-dimensionality).
+ * Arrays in different orders, but with equal elements, will not be
+ * regarded as equal.
+ * @param  {array}   a [description]
+ * @param  {array}   b [description]
+ * @return {boolean}   [true if arrays are equal, false otherwise]
+ */
+function arraysEqual(a, b){
 
-function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (!a || !b) return false;
+    if (a.length != b.length) return false;
 
-  if (a === b) return true;
-  if (a == null || b == null) return false;
-  if (a.length != b.length) return false;
+    for (var i = 0, l=a.length; i < l; i++) {
 
-  for (var i = 0; i < a.length; ++i) {
-    if (a[i] !== b[i]) return false;
-  }
-  
-  return true;
+        if (a[i] instanceof Array && b[i] instanceof Array) {
+            if (!arraysEqual(a[i],b[i])){
+              return false;
+            }
+        }
 
+        else if (a[i] != b[i]) {
+            return false;
+        }
+
+    }
+    return true;
 }
